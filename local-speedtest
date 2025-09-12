@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+## Obtain local server's IP address(es)
+PUB_IP="$(curl -s 'ipinfo.io/ip'; echo)"
+if command -v tailscale >/dev/null 2>&1; then
+	TS="y"
+	TS_IP4=""
+	TS_IP6=""
+	while read -r LINE; do
+		if [[ $LINE != *Warning* ]]; then
+			IFS=$'\n' read -rd '' IP <<<"$LINE"; unset IFS
+			if [[ -z "${TS_IP4}" ]]; then
+				TS_IP4="${IP%% *}"
+			else
+				TS_IP6="${IP%% *}"
+			fi
+		fi
+	done < <(tailscale ip)
+fi
+
+## Check for iperf daemon; start if necessary
+if ! netstat -l | grep :25002 >/dev/null 2>&1; then
+	iperf3 -D -i1 -s -p 25002
+fi
+
+## Provide public IPv4 test commands
+echo "*** Local Speedtest ***"
+echo "'iperf' is required on your local client. Version 3 is recommended,"
+echo "especially for UDP testing. To check your version(s), run the following"
+echo "command on your local client:"; echo
+echo "iperf -v; iperf2 -v; iperf3 -v | head -1"; echo
+
+read -p "→ What version of iperf are you testing with? (2/3): " IPERF_V
+case "${IPERF_V}" in
+	2 )	echo; echo "*** Continuing with iperf2 commands ***"
+		VER=""
+		;;
+	3 )	echo; echo "*** Continuing with iperf3 commands ***"
+		VER="3"
+		;;
+	* )	echo "*** ERROR: Invalid response; terminating ***"
+		exit 1
+		;;
+esac
+
+echo; echo "Use the commands below on your local client as a guide for testing."
+echo -e " – Add '-R' to the end of a command to Reverse the traffic flow."
+echo -e " – UDP commands are set to 80 Mbps; customize with '-b' as needed."
+echo
+echo "* TCP test command with public IP:"
+echo "iperf${VER} -i1 -c ${PUB_IP} -p 25002"
+echo
+echo "* UDP test command with public IP:"
+echo "iperf${VER} -i1 -c ${PUB_IP} -u -p 25002 -b 80M"
+
+## Continue only if Tailscale is running
+if [[ ${TS} != y ]]; then
+	exit 1
+fi
+
+## Provide Tailscale IPv4 & IPv6 test commands
+echo; echo "* TCP test command with Tailscale IPv4:"
+echo "iperf${VER} -i1 -c ${TS_IP4} -p 25002"
+echo
+echo "* UDP test command with Tailscale IPv4:"
+echo "iperf${VER} -i1 -c ${TS_IP4} -u -p 25002 -b 80M"
+echo
+echo "* TCP test command with Tailscale IPv6:"
+echo "iperf${VER} -i1 -c ${TS_IP6} -p 25002"
+echo
+echo "* UDP test command with Tailscale IPv6:"
+echo "iperf${VER} -i1 -c ${TS_IP6} -u -p 25002 -b 80M"
