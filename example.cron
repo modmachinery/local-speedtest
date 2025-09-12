@@ -1,0 +1,5 @@
+## Debian
+@reboot		chronic iperf3 -D -i1 -s -p 25002
+
+## Synology DSM
+@reboot                                 root    iperf3 -D -i1 -s -p 25002 > /dev/null
