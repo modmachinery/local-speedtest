@@ -50,6 +50,7 @@ fi
 if [[ $Daemon != y ]]; then
 	printf '%s\n' \
 		"Starting local ${ClrBld}iperf${ClrOff} daemon..."
+
 	## Locate newest iperf
 	if command -v iperf3 >/dev/null 2>&1; then
 		Cmd=iperf3
@@ -57,11 +58,11 @@ if [[ $Daemon != y ]]; then
 		Cmd=iperf2
 	elif command -v iperf >/dev/null 2>&1; then
 		Cmd=iperf
-		$Cmd -D -i1 -s -p 25002
 	else printf '%s\n' \
 		"${ClrRed}${ClrBld}Error: No local 'iperf' was found...${ClrOff}"
 		exit 2
 	fi
+	[[ -n $Cmd ]] && $Cmd -D -i1 -s -p 25002
 else
 	printf '%s\n' \
 		"Local ${ClrBld}iperf${ClrOff} daemon is running..."
