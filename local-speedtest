@@ -36,7 +36,12 @@ fi
 ## Check for iperf daemon; start if necessary
 Kernel=$(uname)
 if [[ $Kernel == Linux ]]; then
-	if ss -l | grep :25002 >/dev/null 2>&1; then
+	if command -v ss >/dev/null 2>&1; then
+		Cmd=ss
+	elif command -v netstat >/dev/null 2>&1; then
+		Cmd=netstat
+	fi
+	if $Cmd -l | grep :25002 >/dev/null 2>&1; then
 		Daemon=y
 	fi
 elif [[ $Kernel == Darwin ]]; then
