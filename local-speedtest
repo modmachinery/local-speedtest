@@ -57,7 +57,7 @@ if [[ $Daemon != y ]]; then
 		Cmd=iperf2
 	elif command -v iperf >/dev/null 2>&1; then
 		Cmd=iperf
-		eval $Cmd -D -i1 -s -p 25002
+		$Cmd -D -i1 -s -p 25002
 	else printf '%s\n' \
 		"${ClrRed}${ClrBld}Error: No local 'iperf' was found...${ClrOff}"
 		exit 2
