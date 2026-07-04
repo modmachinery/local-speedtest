@@ -2,18 +2,21 @@
 
 ## Colors
 ClrBld=$(tput bold)
+ClrDim=$(tput dim)
 ClrRed=$(tput setaf 196)
-ClrBlu=$(tput setaf 51)
+ClrGrn=$(tput setaf 040)
 ClrOff=$(tput sgr0)
 
 ## Greeting
-printf '%s\n' \
-	"${ClrBlu}${ClrBld}Local Speedtest${ClrOff}"
+printf '%s\n\n' \
+	"${ClrGrn}${ClrBld}Local Speedtest${ClrOff}"
 
 ## Obtain local server's IP address(es)
 printf '%s\n' \
-	"Obtaining all public IP details for this host..."
+	"${ClrDim}Obtaining all public IP details for this host...${ClrOff}"
 PublicIP="$(curl -s 'ipinfo.io/ip'; echo)"
+
+## If Tailscale is installed/running obtain info
 if command -v tailscale >/dev/null 2>&1; then
 	Tailscale=y
 	TailscaleIP4=
@@ -31,10 +34,34 @@ if command -v tailscale >/dev/null 2>&1; then
 fi
 
 ## Check for iperf daemon; start if necessary
-if ! netstat -l | grep :25002 >/dev/null 2>&1; then
+Kernel=$(uname)
+if [[ $Kernel == Linux ]]; then
+	if ss -l | grep :25002 >/dev/null 2>&1; then
+		Daemon=y
+	fi
+elif [[ $Kernel == Darwin ]]; then
+	if lsof -i -nP | grep :25002 >/dev/null 2>&1; then
+		Daemon=y
+	fi
+else printf '%s\n' \
+	"Unknown kernal '${Kernel}', continuing..."
+fi
+
+if [[ $Daemon != y ]]; then
 	printf '%s\n' \
 		"Starting local ${ClrBld}iperf${ClrOff} daemon..."
-	iperf3 -D -i1 -s -p 25002
+	## Locate newest iperf
+	if command -v iperf3 >/dev/null 2>&1; then
+		Cmd=iperf3
+	elif command -v iperf2 >/dev/null 2>&1; then
+		Cmd=iperf2
+	elif command -v iperf >/dev/null 2>&1; then
+		Cmd=iperf
+		eval $Cmd -D -i1 -s -p 25002
+	else printf '%s\n' \
+		"${ClrRed}${ClrBld}Error: No local 'iperf' was found...${ClrOff}"
+		exit 2
+	fi
 else
 	printf '%s\n' \
 		"Local ${ClrBld}iperf${ClrOff} daemon is running..."
@@ -45,9 +72,9 @@ printf "\n%s\n\n" \
 	"'iperf' is required on your remote client. Version 3 is recommended especially for UDP testing. To check your version(s), run the following command on your remote client:" \
 	| fmt -w 80
 printf '%s\n\n' \
-	"${ClrBlu}${ClrBld}for i in iperf iperf2 iperf3; do [ \$(command -v \$i) ] && \$i -v | head -1; done${ClrOff}"
+	"${ClrGrn}${ClrBld}for i in iperf iperf2 iperf3; do [ \$(command -v \$i) ] && \$i -v | head -1; done${ClrOff}"
 
-read -rp "  → What version of iperf are you testing with? (2/3): " iperfVersion
+read -rp "  → What version of iperf is installed on your remote client? [2/3]: " iperfVersion
 case "${iperfVersion}" in
 	2 )	printf '\n%s\n' \
 			"*** Continuing with ${ClrBld}iperf2${ClrOff} commands ***"
@@ -66,18 +93,18 @@ esac
 printf '\n%s\n' \
 	"Use the commands below on your remote client as a guide for testing."
 printf '%s\n' \
-	" - Add ${ClrBlu}${ClrBld}-R${ClrOff} to the end of a command to Reverse the traffic flow."
+	" - Add ${ClrGrn}${ClrBld}-R${ClrOff} to the end of a command to Reverse the traffic flow."
 printf '%s\n\n' \
-	" - UDP commands are set to 80 Mbps; customize with ${ClrBlu}${ClrBld}-b${ClrOff} as needed."
+	" - UDP commands are set to 80 Mbps; customize with ${ClrGrn}${ClrBld}-b${ClrOff} as needed."
 
 printf '%s\n' \
 	"* TCP test command with public IP:"
 printf '%s\n' \
-	"${ClrBlu}${ClrBld}iperf${Version} -i1 -c ${PublicIP} -p 25002${ClrOff}"
+	"${ClrGrn}${ClrBld}iperf${Version} -i1 -c ${PublicIP} -p 25002${ClrOff}"
 printf '\n%s\n' \
 	"* UDP test command with public IP:"
 printf '%s\n' \
-	"${ClrBlu}${ClrBld}iperf${Version} -i1 -c ${PublicIP} -u -p 25002 -b 80M${ClrOff}"
+	"${ClrGrn}${ClrBld}iperf${Version} -i1 -c ${PublicIP} -u -p 25002 -b 80M${ClrOff}"
 
 ## Continue only if Tailscale is running
 if [[ ${Tailscale} != y ]]; then
@@ -88,19 +115,19 @@ fi
 printf '\n%s\n' \
 	"* TCP test command with Tailscale IPv4:"
 printf '%s\n' \
-	"${ClrBlu}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP4} -p 25002${ClrOff}"
+	"${ClrGrn}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP4} -p 25002${ClrOff}"
 
 printf '\n%s\n' \
 	"* UDP test command with Tailscale IPv4:"
 printf '%s\n' \
-	"${ClrBlu}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP4} -u -p 25002 -b 80M${ClrOff}"
+	"${ClrGrn}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP4} -u -p 25002 -b 80M${ClrOff}"
 
 printf '\n%s\n' \
 	"* TCP test command with Tailscale IPv6:"
 printf '%s\n' \
-	"${ClrBlu}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP6} -p 25002${ClrOff}"
+	"${ClrGrn}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP6} -p 25002${ClrOff}"
 
 printf '\n%s\n' \
 	"* UDP test command with Tailscale IPv6:"
 printf '%s\n' \
-	"${ClrBlu}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP6} -u -p 25002 -b 80M${ClrOff}"
+	"${ClrGrn}${ClrBld}iperf${Version} -i1 -c ${TailscaleIP6} -u -p 25002 -b 80M${ClrOff}"
