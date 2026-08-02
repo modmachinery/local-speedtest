@@ -42,7 +42,7 @@ if [[ $Kernel == Linux ]]; then
 	elif command -v netstat >/dev/null 2>&1; then
 		Cmd=netstat
 	fi
-	if $Cmd -l | grep :25002 >/dev/null 2>&1; then
+	if $Cmd --listening --numeric | grep :25002 >/dev/null 2>&1; then
 		Daemon=y
 	fi
 elif [[ $Kernel == Darwin ]]; then
